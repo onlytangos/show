@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tango: orchestras and champions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#16120F; --panel:#1E1915; --panel2:#26201B; --line:#3A322C;
+  --ink:#F2EBE0; --mute:#B4A897; --dim:#8C8072;
+  --gv:#D9B05A; --oro:#D9473F; --van:#5B8FD6; --con:#3FB39E;
+  --off:#28221E; --dec:#3A322C; --gold:#382620;
+  --side:260px;
+  --list:14px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif}
+a{color:var(--gv)} a:hover{color:#F0D08A}
+button{font:inherit;color:inherit}
+
+/* ---------- layout ---------- */
+.side{position:fixed;inset:0 auto 0 0;width:var(--side);background:var(--panel);border-right:1px solid var(--line);
+  display:flex;flex-direction:column;transition:transform .25s ease;z-index:20}
+.side-head{display:flex;align-items:center;justify-content:space-between;padding:12px 12px 12px 18px;border-bottom:1px solid var(--line)}
+.brand{font-family:'Playfair Display',Georgia,serif;font-size:22px;line-height:1.1}
+.brand small{display:block;font-family:Inter,sans-serif;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gv);margin-bottom:4px}
+.nav{display:flex;flex-direction:column;padding:8px 8px;gap:1px;overflow-y:auto;min-height:0}
+.nav a{display:flex;align-items:center;gap:10px;padding:5px 10px;border-radius:7px;text-decoration:none;color:var(--mute);font-size:13px;line-height:1.25;min-height:30px}
+.nav a:hover{background:var(--panel2);color:var(--ink)}
+.nav a.on{background:var(--panel2);color:var(--ink);box-shadow:inset 3px 0 0 var(--oro)}
+.nav svg{flex:none}
+.nav .grp{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);padding:10px 10px 3px}
+.nav .count{margin-left:auto;font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums}
+.side-foot{margin-top:auto;padding:10px 16px;font-size:11px;color:var(--dim);line-height:1.5;border-top:1px solid var(--line)}
+
+.main{margin-left:var(--side);transition:margin .25s ease;min-height:100vh}
+body.collapsed .side{transform:translateX(calc(-1 * var(--side)))}
+body.collapsed .main{margin-left:0}
+
+.topbar{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:12px;padding:10px 16px;background:rgba(22,18,15,.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
+.iconbtn{width:44px;height:44px;border:1px solid var(--line);background:var(--panel);border-radius:8px;display:grid;place-items:center;cursor:pointer}
+.iconbtn:hover{border-color:var(--dim)}
+.topbar .t{font-size:14px;color:var(--mute)}
+.scrim{display:none}
+
+section{padding:22px 28px 32px;max-width:1500px}
+section[hidden]{display:none}
+.kicker{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--gv);font-weight:600}
+h1{font-family:'Playfair Display',Georgia,serif;font-size:clamp(24px,2.6vw,36px);line-height:1.1;margin:4px 0 6px}
+.lead{color:var(--mute);font-size:14px;line-height:1.45;max-width:780px;margin:0 0 14px}
+.note{font-size:12px;color:var(--dim);line-height:1.5;margin-top:12px;max-width:900px}
+
+/* ---------- cronología ---------- */
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin:0 0 12px;font-size:12px;color:var(--mute)}
+.legend span{display:inline-flex;align-items:center;gap:8px}
+.sw{width:18px;height:12px;border-radius:2px;display:inline-block}
+.tl-wrap{width:100%}
+.tl{width:100%}
+.tl-row{display:grid;grid-template-columns:260px minmax(0,1fr);align-items:center;gap:10px;height:22px}
+.tl-name{display:flex;justify-content:space-between;gap:6px;font-size:var(--list);white-space:nowrap;overflow:hidden;min-width:0}
+.tl-name b{font-weight:400;overflow:hidden;text-overflow:ellipsis}
+.tl-name a{color:var(--ink);text-decoration:none}
+.tl-name a:hover{color:#F07A7A}
+.tl-name i{font-style:normal;color:var(--dim);font-size:var(--list);font-variant-numeric:tabular-nums}
+.yr{display:grid;grid-template-columns:repeat(127,minmax(0,1fr));gap:1px}
+.c{height:12px;border-radius:1px}
+.track{position:relative;height:12px;border-radius:2px;
+  background:linear-gradient(to right, var(--dec) 1px, transparent 1px) 0 0 / calc(100% * 10 / 127) 100% repeat-x, var(--off)}
+.band{position:absolute;top:0;bottom:0;background:var(--gold)}
+.bar{position:absolute;top:0;bottom:0;border-radius:2px}
+.axis{position:relative;height:16px}
+.axis span{position:absolute;top:0;font-size:10px;color:var(--mute);transform:translateX(-1px)}
+.k-off{background:var(--off)} .k-dec{background:var(--dec)} .k-gold{background:var(--gold)}
+.k-gv{background:var(--gv)} .k-oro{background:var(--oro)} .k-van{background:var(--van)} .k-con{background:var(--con)}
+.ax{position:relative;height:16px}
+.ax span{position:absolute;left:0;font-size:10px;color:var(--mute)}
+
+/* ---------- tabla orquestas ---------- */
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{background:transparent;border:0;padding:8px 12px;min-height:38px;cursor:pointer;color:var(--mute);font-size:14px}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button.on{background:var(--panel2);color:var(--ink)}
+.search{flex:1 1 220px;max-width:340px;position:relative}
+.search input{width:100%;min-height:38px;padding:10px 12px 10px 36px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-size:14px}
+.search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--dim)}
+.chk{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--mute);min-height:38px}
+.tbl-box{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{width:100%;border-collapse:collapse;font-size:var(--list);min-width:560px}
+th,td{text-align:left;padding:4px 10px;line-height:1.25;border-bottom:1px solid var(--line);vertical-align:middle}
+th{position:sticky;top:0;background:var(--panel);font-size:var(--list);color:var(--mute);font-weight:400}
+th button{background:none;border:0;padding:0;cursor:pointer;letter-spacing:inherit;text-transform:inherit;color:inherit;display:inline-flex;gap:6px;align-items:center}
+tr:last-child td{border-bottom:0}
+tbody tr:hover{background:var(--panel)}
+td.loc{color:var(--mute)}
+td.yr-c{font-variant-numeric:tabular-nums;color:var(--gv)}
+td .sub{display:block;color:var(--dim);font-size:13px;margin-top:2px}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--mute);white-space:nowrap}
+.badge.act{border-color:#2E6B60;color:#7FD3C3}
+.badge.unc{border-color:#6B5A2E;color:#E2C47F}
+.oname{color:var(--ink);font-weight:400;text-decoration:none;border-bottom:1px dotted var(--dim)}
+.oname:hover{color:#F07A7A;border-bottom-color:#F07A7A}
+.ico{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:6px;color:#fff;background:#B08A3E;text-decoration:none;transition:filter .15s, transform .15s}
+.ico:hover{filter:brightness(1.15);transform:translateY(-1px)}
+.ico.fb{background:#1F6FE0}
+.ico.yt{background:#D93A3A}
+.ico.img{background:#2F9C8A}
+.icos{display:flex;gap:4px;flex-wrap:wrap}
+.none{color:var(--dim)}
+
+/* ---------- campeones ---------- */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden;display:flex;flex-direction:column}
+.ph{text-decoration:none;aspect-ratio:16/9;background:var(--panel2);position:relative;display:grid;place-items:center}
+.ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;z-index:1}
+.ph .year{z-index:2}
+.ph:hover .ini{color:var(--gv)}
+.ph .ini{font-family:'Playfair Display',Georgia,serif;font-size:30px;color:var(--dim)}
+.ph .year{position:absolute;left:8px;top:8px;background:rgba(22,18,15,.85);padding:2px 8px;border-radius:5px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--gv);font-size:13px}
+.card .body{padding:9px 11px 10px;display:flex;flex-direction:column;gap:3px;flex:1}
+.card .names{font-size:var(--list);font-weight:400;line-height:1.3}
+.card .meta{font-size:var(--list);color:var(--mute)}
+.card .nt{font-size:var(--list);color:var(--dim);line-height:1.35}
+.card .nt.warn{color:#E2C47F}
+.card .nt.vt{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .links{margin-top:auto;padding-top:6px;display:flex;flex-wrap:wrap;gap:6px}
+.pill{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:6px 12px;border-radius:8px;border:1px solid var(--line);text-decoration:none;font-size:13px;color:var(--ink)}
+.pill:hover{border-color:var(--gv);color:var(--gv)}
+.pill.off{color:var(--dim);border-style:dashed}
+
+/* ---------- campeones: player + lista ---------- */
+.champs:not([hidden]){display:flex;flex-direction:column;height:calc(100dvh - 65px)}
+.champs{max-width:none}
+.champs .lead{max-width:none}
+.split{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) clamp(300px,34vw,460px);gap:14px}
+.player{min-height:0;display:flex;flex-direction:column}
+.frame{width:100%;aspect-ratio:16/9;max-height:100%;background:#000;border:1px solid var(--line);border-radius:10px;overflow:hidden;flex:none;display:grid;place-items:center}
+.frame iframe{width:100%;height:100%;border:0;display:block}
+.poster{position:relative;width:100%;height:100%;display:grid;place-items:center;text-decoration:none;color:#fff}
+.poster img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.7}
+.poster .play{position:relative;width:64px;height:64px;border-radius:50%;background:#D93A3A;display:grid;place-items:center}
+.poster .hint{position:absolute;left:0;right:0;bottom:0;padding:8px 12px;background:rgba(22,18,15,.85);font-size:13px;color:var(--mute)}
+.poster:hover img{opacity:.85}
+.list{min-height:0;overflow-y:auto;padding-right:4px;align-content:start;grid-auto-rows:max-content}
+button.ph{border:0;padding:0;width:100%;cursor:pointer;font:inherit;color:inherit}
+.list{grid-template-columns:minmax(0,1fr);gap:8px}
+.list .card{flex-direction:row}
+.list .ph{flex:none;width:42%;aspect-ratio:auto;min-height:108px}
+.list .card .body{min-width:0}
+.col{min-height:0;display:flex;flex-direction:column;gap:8px}
+.col .list{flex:1}
+.ctl{display:flex;gap:8px}
+.ctl .filter{flex:1;min-width:0}
+.allbtn{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:6px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--mute);font-size:13px;cursor:pointer;white-space:nowrap}
+.allbtn:hover{border-color:var(--dim);color:var(--ink)}
+.allbtn[aria-pressed="true"]{border-color:var(--gv);color:var(--gv);background:var(--panel2)}
+.filter{min-height:34px;padding:7px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;font-size:13px}
+.ph .dur{position:absolute;right:6px;bottom:6px;z-index:2;background:rgba(0,0,0,.8);color:#fff;font-size:11px;padding:1px 5px;border-radius:4px;font-variant-numeric:tabular-nums}
+.card .names{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.champs .lead{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ph .play{position:absolute;z-index:2;width:44px;height:44px;border-radius:50%;background:rgba(22,18,15,.75);display:grid;place-items:center;color:#fff;opacity:0;transition:opacity .15s}
+.ph:hover .play,.ph:focus-visible .play,.card.on .play{opacity:1}
+.card.on{border-color:var(--gv);box-shadow:0 0 0 1px var(--gv)}
+
+@media (max-width: 900px){
+  .main{margin-left:0}
+  .side{transform:translateX(calc(-1 * var(--side)))}
+  body.open .side{transform:none}
+  body.open .scrim{display:block;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:15}
+  section{padding:16px 12px 28px}
+  .champs:not([hidden]){height:auto}
+  .split{grid-template-columns:minmax(0,1fr)}
+  .player{position:sticky;top:65px;z-index:5}
+  .frame{max-height:none}
+  .list{overflow:visible;padding-right:0}
+  .col{min-height:auto}
+}
+@media (max-width: 700px){
+  .yr{gap:0}
+  .tl-row{grid-template-columns:150px minmax(0,1fr)}
+  .tl-name i{display:none}
+  .ax span{font-size:9px}
+  .axis .d10{display:none}
+  .axis span{font-size:9px}
+}
+</style>
+</head>
+<body>
+<aside class="side" id="side" aria-label="Menu">
+  <div class="side-head">
+    <div class="brand"><small>Tango</small>Orchestras and videos</div>
+    <button class="iconbtn" id="closeBtn" aria-label="Collapse menu">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+    </button>
+  </div>
+  <nav class="nav" id="nav">
+    <a href="#cronologia" data-s="cronologia">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h10M3 12h16M3 18h7"/></svg>
+      Timeline<span class="count" id="n-cron"></span></a>
+    <a href="#orquestas" data-s="orquestas">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+      Active orchestras<span class="count" id="n-orq"></span></a>
+  </nav>
+  <div class="side-foot">Data collected in October 2026. Links are included only when found in sources that attribute them to the orchestra or couple.</div>
+</aside>
+<div class="scrim" id="scrim"></div>
+
+<div class="main">
+  <div class="topbar">
+    <button class="iconbtn" id="menuBtn" aria-label="Show or hide menu" aria-controls="side">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+    <span class="t" id="crumb"></span>
+  </div>
+
+  <section id="s-cronologia" data-title="Timeline">
+    <div class="kicker">1900 – 2026</div>
+    <h1>The great tango orchestras</h1>
+    <p class="lead">Each row is an orchestra; each bar spans the years it was active under its leader.</p>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--gv)"></i>Guardia Vieja (Old Guard)</span>
+      <span><i class="sw" style="background:var(--oro)"></i>New Guard &amp; Golden Age</span>
+      <span><i class="sw" style="background:var(--van)"></i>Renewal &amp; avant-garde</span>
+      <span><i class="sw" style="background:var(--con)"></i>Contemporary</span>
+      <span><i class="sw" style="background:var(--gold)"></i>Golden Age (1935–1955)</span>
+    </div>
+    <div class="tl-wrap"><div class="tl" id="tl"></div></div>
+    <p class="note">Approximate dates: from the first stable line-up to the leader's retirement or death.</p>
+  </section>
+
+  <section id="s-orquestas" data-title="Active orchestras" hidden>
+    <div class="kicker">Active · 2025–2026</div>
+    <h1>Living tango orchestras</h1>
+    <p class="lead">Orchestras playing today at milongas, festivals and concerts, with their founding year and official links.</p>
+    <div class="tools">
+      <div class="seg" role="group" aria-label="Region">
+        <button class="on" data-r="all">All</button>
+        <button data-r="ar">Argentina</button>
+        <button data-r="mundo">Rest of the world</button>
+      </div>
+      <label class="search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input id="q" type="search" placeholder="Search orchestra, city…" aria-label="Search">
+      </label>
+      <label class="chk"><input type="checkbox" id="onlyAct"> Confirmed activity only</label>
+    </div>
+    <div class="tbl-box">
+      <table>
+        <thead><tr>
+          <th><button data-sort="name">Orchestra</button></th>
+          <th><button data-sort="founded">Founded</button></th>
+          <th><button data-sort="country">Country / city</button></th>
+          <th>Links</th>
+        </tr></thead>
+        <tbody id="orqBody"></tbody>
+      </table>
+    </div>
+    <p class="note">“Confirmed activity only” keeps orchestras with performances found in 2025–2026.</p>
+  </section>
+
+  <div id="listas"></div>
+</div>
+
+<script src="datos.cifrados.js"></script>
+<script>
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ---- menú plegable ---- */
+const mq = window.matchMedia('(max-width: 900px)');
+function toggleMenu(){
+  if (mq.matches) document.body.classList.toggle('open');
+  else document.body.classList.toggle('collapsed');
+}
+$('#menuBtn').onclick = toggleMenu;
+$('#closeBtn').onclick = toggleMenu;
+$('#scrim').onclick = () => document.body.classList.remove('open');
+/* al elegir una sección del menú, se cierra el panel lateral */
+$('#nav').addEventListener('click', e => {
+  if (e.target.closest('a') && !mq.matches) document.body.classList.add('collapsed');
+});
+
+/* ---- navegación ---- */
+function show(id){
+  if (!document.getElementById('s-' + id)) id = 'cronologia';
+  document.querySelectorAll('section').forEach(s => s.hidden = s.id !== 's-' + id);
+  document.querySelectorAll('.nav a').forEach(a => a.classList.toggle('on', a.dataset.s === id));
+  $('#crumb').textContent = document.getElementById('s-' + id).dataset.title;
+  document.body.classList.remove('open');
+  window.scrollTo(0, 0);
+  stopHidden();
+  abreLista(id);
+}
+window.addEventListener('hashchange', () => show(location.hash.slice(1)));
+show(location.hash.slice(1));
+
+const ytOrq = n => 'https://www.youtube.com/results?search_query=' + encodeURIComponent((/^(orquesta|sexteto|color tango)/i.test(n) ? n : 'orquesta ' + n) + ' tango');
+
+/* ---- cronología: las orquestas de listas/orquestas.js (desde, hasta, era) ---- */
+function pintaCronologia(orq){
+  const Y0 = 1900, Y1 = 2026, N = Y1 - Y0 + 1;
+  const pct = y => ((y - Y0) / N * 100).toFixed(3) + '%';
+  let h = '<div class="tl-row"><div></div><div class="axis">';
+  for (let y = Y0; y <= Y1; y += 10) h += '<span' + (y % 20 ? ' class="d10"' : '') + ' style="left:' + pct(y) + '">' + y + '</span>';
+  h += '</div></div>';
+  for (const {nombre: n, desde: a, hasta: b, era: k} of orq) {
+    h += '<div class="tl-row"><div class="tl-name"><b title="' + esc(n) + ' · YouTube"><a href="' + ytOrq(n) + '" target="_blank" rel="noopener">' + esc(n) + '</a></b><i>' + a + '–' + (b === Y1 ? 'now' : b) + '</i></div>' +
+      '<div class="track"><div class="band" style="left:' + pct(1935) + ';width:' + (21 / N * 100).toFixed(3) + '%"></div>' +
+      '<div class="bar k-' + k + '" style="left:' + pct(a) + ';width:' + ((b - a + 1) / N * 100).toFixed(3) + '%" title="' + esc(n) + ' · ' + a + '–' + b + '"></div></div></div>';
+  }
+  $('#tl').innerHTML = h;
+  $('#n-cron').textContent = orq.length;
+}
+
+/* ---- orquestas ---- */
+let ORQ = [];   /* listas/orquestas-live.js (region: ar o mundo) */
+let region = 'all', sortKey = 'founded', sortDir = 1;
+const SVG_FB = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5"/><circle cx="17" cy="9" r="2.4"/><path d="M16 14.2c2.4-.3 4.1 1.2 4.6 4"/></svg>';
+const SVG_WEB = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9M12 3c-2.5 2.7-3.8 5.7-3.8 9s1.3 6.3 3.8 9"/></svg>';
+const SVG_IMG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 17l-5-5-9 8"/></svg>';
+const SVG_YT = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z" fill="currentColor"/></svg>';
+const ytq = c => 'https://www.youtube.com/results?search_query=' + encodeURIComponent('tango ' + c.d1 + ' ' + c.d2) + '&sp=CAM%253D';
+const gimg = c => 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent('tango ' + c.d1 + ' ' + c.d2);
+function icons(fb, web){
+  const out = [];
+  if (fb) fb.split('|').map(x => x.trim()).filter(Boolean).forEach((u, i, arr) =>
+    out.push('<a class="ico fb" href="' + esc(u) + '" target="_blank" rel="noopener" title="Facebook' + (arr.length > 1 ? ' ' + (i + 1) : '') + '" aria-label="Facebook' + (arr.length > 1 ? ' ' + (i + 1) : '') + '">' + SVG_FB + '</a>'));
+  if (web) out.push('<a class="ico" href="' + esc(web) + '" target="_blank" rel="noopener" title="Web" aria-label="Web">' + SVG_WEB + '</a>');
+  return out.length ? '<div class="icos">' + out.join('') + '</div>' : '<span class="none">—</span>';
+}
+function renderOrq(){
+  const q = $('#q').value.trim().toLowerCase();
+  const only = $('#onlyAct').checked;
+  let rows = ORQ.filter(o => (region === 'all' || o.region === region)
+    && (!only || o.status === 'active')
+    && (!q || [o.name, o.city, o.country, o.notes].join(' ').toLowerCase().includes(q)));
+  rows.sort((a, b) => {
+    const x = a[sortKey], y = b[sortKey];
+    if (x == null) return 1; if (y == null) return -1;
+    return (typeof x === 'number' ? x - y : String(x).localeCompare(String(y), 'es')) * sortDir;
+  });
+  $('#orqBody').innerHTML = rows.map(o =>
+    '<tr><td><a class="oname" href="' + esc(o.youtube || ('https://www.youtube.com/results?search_query=' + encodeURIComponent(o.name + ' tango'))) + '" target="_blank" rel="noopener" title="' + (o.youtube ? 'YouTube channel' : 'Search on YouTube') + '">' + esc(o.name) + '</a></td>' +
+    '<td class="yr-c">' + (o.founded ?? '<span class="none">—</span>') + '</td>' +
+    '<td class="loc">' + esc(o.country) + (o.city ? ' · ' + esc(o.city) : '') + '</td>' +
+    '<td><div class="icos"><a class="ico yt" href="' + esc(o.youtube || ytOrq(o.name)) + '" target="_blank" rel="noopener" title="' + (o.youtube ? 'YouTube channel' : 'Search on YouTube') + '" aria-label="YouTube">' + SVG_YT + '</a>' + icons(o.facebook, o.web).replace(/^<div class="icos">|<\/div>$/g, '').replace(/^<span class="none">—<\/span>$/, '') + '</div></td></tr>'
+  ).join('') || '<tr><td colspan="4" class="none">No results</td></tr>';
+}
+document.querySelectorAll('.seg button').forEach(b => b.onclick = () => {
+  region = b.dataset.r;
+  document.querySelectorAll('.seg button').forEach(x => x.classList.toggle('on', x === b));
+  renderOrq();
+});
+document.querySelectorAll('th button').forEach(b => b.onclick = () => {
+  const k = b.dataset.sort; sortDir = (k === sortKey) ? -sortDir : 1; sortKey = k; renderOrq();
+});
+$('#q').oninput = renderOrq; $('#onlyAct').onchange = renderOrq;
+function pintaOrquestas(orq){
+  ORQ = orq.map(v => ({...v, name: v.nombre}));
+  $('#n-orq').textContent = ORQ.length;
+  renderOrq();
+}
+
+/* ---- listas de vídeos: listas/index.js dice qué ficheros cargar; cada uno llama a lista({...}) ---- */
+var LISTAS = [], LMAP = {};
+function lista(L){ LISTAS.push(L); }
+const ICON = {
+  list: '<path d="M4 6h11M4 12h11M4 18h7"/><path d="M17 15l5 3-5 3z" fill="currentColor"/>',
+  trophy: '<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/>',
+  star: '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>',
+  music: '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
+  live: '<circle cx="12" cy="12" r="2"/><path d="M16.2 7.8a6 6 0 0 1 0 8.4M7.8 16.2a6 6 0 0 1 0-8.4M19.1 4.9a10 10 0 0 1 0 14.2M4.9 19.1a10 10 0 0 1 0-14.2"/>'
+};
+const ini = s => s.split(/\s+/)[0][0];
+const dur = n => n == null ? '' : Math.floor(n / 60) + ':' + String(n % 60).padStart(2, '0');
+const ytWatch = v => v.vid ? 'https://www.youtube.com/watch?v=' + encodeURIComponent(v.vid) : ytq(v);
+function links(v){
+  return '<div class="icos">' +
+    (v.d1 ? '<a class="ico img" href="' + gimg(v) + '" target="_blank" rel="noopener" title="Google Images" aria-label="Search Google Images">' + SVG_IMG + '</a>' : '') +
+    '<a class="ico yt" href="' + esc(v.youtube || v.canal_url || ytWatch(v)) + '" target="_blank" rel="noopener" title="' + (v.youtube ? 'YouTube channel' : v.canal_url ? 'YouTube channel' + (v.canal ? ': ' + esc(v.canal) : '') : 'Open on YouTube') + '" aria-label="YouTube">' + SVG_YT + '</a>' +
+    ((v.facebook || v.web) ? icons(v.facebook, v.web).replace(/^<div class="icos">|<\/div>$/g, '') : '') + '</div>';
+}
+function card(L, v, i){
+  const yt = v.vid ? 'https://i.ytimg.com/vi/' + v.vid + '/mqdefault.jpg' : null;
+  const img = v.photo || yt;
+  return '<article class="card"><button class="ph" type="button" data-k="' + esc(L.id) + '" data-i="' + i + '" title="Play in the player">' +
+      (img ? '<img src="' + esc(img) + '" alt="" loading="lazy"' + (v.photo && yt ? ' data-yt="' + esc(yt) + '"' : '') + ' onerror="if(this.dataset.yt){this.src=this.dataset.yt;delete this.dataset.yt}else{this.remove()}">' : '') +
+      '<span class="ini" aria-hidden="true">' + esc(v.d1 ? ini(v.d1) + ini(v.d2) : ini(v.nombre || v.titulo || '?')) + '</span>' +
+      '<span class="play" aria-hidden="true">' + SVG_YT.replace(/14/g, '22') + '</span>' +
+      (v.year ? '<span class="year">' + v.year + '</span>' : '') +
+      (v.duracion ? '<span class="dur">' + dur(v.duracion) + '</span>' : '') + '</button>' +
+    '<div class="body"><div class="names" title="' + esc(v.titulo) + '">' + (v.d1 ? esc(v.d1) + '<br>' + esc(v.d2) : esc(v.nombre || v.titulo)) + '</div>' +
+      '<div class="meta">' + (v.info ? esc(v.info) : v.country ? esc(v.country) + (v.cat ? ' · ' + esc(v.cat) : '') : esc(v.canal)) + '</div>' +
+      (v.nombre && v.titulo ? '<div class="nt vt" title="' + esc(v.titulo + (v.canal ? ' · ' + v.canal : '')) + '">' + esc(v.titulo) + '</div>' : '') +
+      (v.notes ? '<div class="nt">' + esc(v.notes) + '</div>' : '') +
+      (v.unverified ? '<div class="nt warn">Unverified, name match only</div>' : '') +
+      '<div class="links">' + links(v) + '</div>' +
+    '</div></article>';
+}
+/* crea el enlace del menú y la sección de cada lista; las fichas se pintan al abrirla */
+function montaListas(){
+  let nav = '', sec = '', fuente = null;
+  for (const L of LISTAS) {
+    if (!L || !L.id || LMAP[L.id] || document.getElementById('s-' + L.id)) continue;
+    LMAP[L.id] = L;
+    if (L.fuente === 'youtube' && fuente !== 'youtube') nav += '<div class="grp">List</div>';
+    fuente = L.fuente;
+    nav += '<a href="#' + esc(L.id) + '" data-s="' + esc(L.id) + '"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICON[L.icono] || ICON.list) + '</svg>' +
+      esc(L.titulo) + '<span class="count">' + L.videos.length + '</span></a>';
+    sec += '<section class="champs" id="s-' + esc(L.id) + '" data-title="' + esc(L.titulo) + '" hidden>' +
+      (L.descripcion ? '<p class="lead">' + esc(L.descripcion) + '</p>' : '') +
+      '<div class="split"><div class="player"><div class="frame"></div></div><div class="col"><div class="ctl">' +
+      (L.videos.length > 20 ? '<input class="filter" type="search" placeholder="Filter ' + L.videos.length + ' videos…" aria-label="Filter videos">' : '') +
+      '<button class="allbtn" type="button" data-k="' + esc(L.id) + '" aria-pressed="false" title="Play the listed videos one after another">' + SVG_YT + ' Play all</button></div>' +
+      '<div class="cards list"></div></div></div></section>';
+  }
+  $('#nav').insertAdjacentHTML('beforeend', nav);
+  $('#listas').innerHTML = sec;
+}
+function abreLista(id){
+  const L = LMAP && LMAP[id];
+  if (!L || L.pintada) return;
+  L.pintada = true;
+  document.querySelector('#s-' + id + ' .list').innerHTML = L.videos.map((v, i) => card(L, v, i)).join('');
+  if (L.videos.length) play(id, 0, false);
+}
+/* YouTube rechaza los embeds desde file:// (error 153: falta el referrer) */
+const LOCAL = location.protocol === 'file:';
+function play(k, i, auto){
+  const v = LMAP[k].videos[i], sec = document.getElementById('s-' + k);
+  sec.querySelector('.frame').innerHTML = (v.vid && LOCAL)
+    ? '<a class="poster" href="' + esc(ytWatch(v)) + '" target="_blank" rel="noopener" title="Watch on YouTube"><img src="https://i.ytimg.com/vi/' + esc(v.vid) + '/hqdefault.jpg" alt=""><span class="play">' + SVG_YT.replace(/14/g, '30') + '</span><span class="hint">Opened as a local file: YouTube does not allow playing here. Click to watch on YouTube.</span></a>'
+    : v.vid
+    ? '<iframe src="https://www.youtube-nocookie.com/embed/' + esc(v.vid) + '?rel=0&enablejsapi=1&origin=' + encodeURIComponent(location.origin) + (auto ? '&autoplay=1' : '') + '" title="' + esc(v.titulo) + '" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>'
+    : '<a class="pill" href="' + esc(ytWatch(v)) + '" target="_blank" rel="noopener">' + SVG_YT + ' Search on YouTube</a>';
+  sec.querySelectorAll('.list .card').forEach((el, j) => el.classList.toggle('on', j === i));
+  LMAP[k].actual = i;
+  const f = sec.querySelector('.frame iframe');
+  /* el iframe avisa de sus cambios de estado (fin del vídeo) si se le pide con "listening" */
+  if (f) f.addEventListener('load', () => [0, 500, 1500, 3000].forEach(t => setTimeout(() =>
+    f.contentWindow && f.contentWindow.postMessage(JSON.stringify({event: 'listening', id: k, channel: 'widget'}), '*'), t)));
+}
+/* Play all: al acabar un vídeo, el siguiente de los que se ven en la lista (con el filtro, los filtrados); al final, el primero */
+function siguiente(k){
+  const sec = document.getElementById('s-' + k), cards = [...sec.querySelectorAll('.list .card')];
+  const vis = cards.map((el, i) => el.hidden ? -1 : i).filter(i => i >= 0 && LMAP[k].videos[i].vid);
+  if (!vis.length) return;
+  const i = vis.find(i => i > LMAP[k].actual);
+  play(k, i ?? vis[0], true);
+  cards[i ?? vis[0]].scrollIntoView({block: 'nearest', behavior: 'smooth'});
+}
+window.addEventListener('message', e => {
+  if (!/^https:\/\/www\.youtube(-nocookie)?\.com$/.test(e.origin)) return;
+  let d; try { d = JSON.parse(e.data); } catch { return; }
+  const fin = (d.event === 'onStateChange' && d.info === 0) || (d.event === 'infoDelivery' && d.info && d.info.playerState === 0);
+  if (!fin) return;
+  for (const f of document.querySelectorAll('section:not([hidden]) .frame iframe')) {
+    if (f.contentWindow !== e.source) continue;
+    const k = f.closest('section').id.slice(2);
+    if (LMAP[k] && LMAP[k].continuo && !LMAP[k].avanzando) {
+      LMAP[k].avanzando = true;   /* el fin puede llegar por los dos eventos: un solo salto */
+      setTimeout(() => { LMAP[k].avanzando = false; }, 1500);
+      siguiente(k);
+    }
+  }
+});
+/* al cambiar de sección, recarga el vídeo oculto sin autoplay para que deje de sonar */
+function stopHidden(){
+  document.querySelectorAll('section[hidden] .frame iframe').forEach(f => {
+    if (f.src.includes('&autoplay=1')) f.src = f.src.replace('&autoplay=1', '');
+  });
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('button.ph');
+  if (b) play(b.dataset.k, +b.dataset.i, true);
+  const a = e.target.closest('button.allbtn');
+  if (a) {
+    const L = LMAP[a.dataset.k];
+    L.continuo = !L.continuo;
+    a.setAttribute('aria-pressed', L.continuo);
+    if (L.continuo) play(L.id, L.actual ?? 0, true);
+  }
+});
+document.addEventListener('input', e => {
+  if (!e.target.classList.contains('filter')) return;
+  const q = e.target.value.trim().toLowerCase(), L = LMAP[e.target.closest('section').id.slice(2)];
+  e.target.closest('.col').querySelectorAll('.list .card').forEach((el, i) => {
+    const v = L.videos[i];
+    el.hidden = !!q && ![v.nombre, v.info, v.titulo, v.canal, v.country, v.cat, v.year].join(' ').toLowerCase().includes(q);
+  });
+});
+/* en GitHub las listas van cifradas (cmd.publicar/cifra.py: datos.cifrados.js, AES-GCM): se descifran
+   con la clave de la url, show/#k=<clave>; como el # cambia al navegar, la clave se guarda en el
+   navegador. En local, sin cifrar: los ficheros de listas/ */
+async function descifra(){
+  let k = new URLSearchParams(location.hash.slice(1)).get('k');
+  try { if (k) localStorage.setItem('showk', k); else k = localStorage.getItem('showk'); } catch (e) {}
+  try {
+    const bytes = t => Uint8Array.from(atob(t), c => c.charCodeAt(0));
+    const datos = bytes(DATOS_CIFRADOS);
+    const clave = await crypto.subtle.importKey('raw', bytes((k || '').replace(/-/g, '+').replace(/_/g, '/')), 'AES-GCM', false, ['decrypt']);
+    const texto = await crypto.subtle.decrypt({name: 'AES-GCM', iv: datos.slice(0, 12)}, clave, datos.slice(12));
+    (0, eval)(new TextDecoder().decode(texto));   // lista({...}) de cada fichero, en el orden del menú
+    return true;
+  } catch (e) {
+    try { localStorage.removeItem('showk'); } catch (x) {}
+    document.body.textContent = k ? 'la clave de la url no es válida' : 'falta la clave en la url (#k=...)';
+    return false;
+  }
+}
+
+/* carga los ficheros en orden; un fichero que falte no impide montar los demás */
+(async function(){
+  const files = typeof DATOS_CIFRADOS == 'undefined' ? window.LISTAS_INDEX || [] : [];
+  let n = files.length;
+  const fin = () => {
+    if (--n > 0) return;
+    montaListas();
+    pintaCronologia(LMAP['orchestras'] ? LMAP['orchestras'].videos : []);
+    pintaOrquestas(LMAP['orchestras-live'] ? LMAP['orchestras-live'].videos : []);
+    show(location.hash.slice(1));
+  };
+  if (typeof DATOS_CIFRADOS != 'undefined' && !await descifra()) return;
+  if (!n) { n = 1; fin(); return; }
+  for (const f of files) {
+    const sc = document.createElement('script');
+    sc.src = 'listas/' + f; sc.async = false;
+    sc.onload = sc.onerror = fin;
+    document.head.appendChild(sc);
+  }
+})();
+</script>
+<script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "ab7133f2417a42ba9cbfb4919d7d41cd"}'></script>
+<script>(() => { const e = (t, v) => fetch('https://tangoinfo-eventos.55tgb.workers.dev/e?p=' + encodeURIComponent('show/' + t + '/' + v), {method: 'POST', keepalive: true}).catch(() => {}); let r = ''; try { r = new URL(document.referrer).host; } catch (x) {} e('visita', r && r != location.host ? r : 'directo'); })();</script>
+</body>
+</html>
