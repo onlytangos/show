@@ -410,13 +410,14 @@ function montaListas(){
   for (const L of LISTAS) {
     if (!L || !L.id || LMAP[L.id] || document.getElementById('s-' + L.id)) continue;
     LMAP[L.id] = L;
+    L.continuo = true;   // Play all, activado por defecto
     if (!nav) nav = '<div class="grp">List</div>';   // Summary: Timeline y Active orchestras; List: el resto
     nav += '<a href="#' + esc(L.id) + '" data-s="' + esc(L.id) + '"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICON[L.icono] || ICON.list) + '</svg>' +
       esc(L.titulo) + '<span class="count">' + L.videos.length + '</span></a>';
     sec += '<section class="champs" id="s-' + esc(L.id) + '" data-title="' + esc(L.titulo) + '" hidden>' +
       (L.descripcion ? '<p class="lead">' + esc(L.descripcion) + '</p>' : '') +
       '<div class="split"><div class="player"><div class="frame"></div></div><div class="col"><div class="ctl">' +
-      '<button class="allbtn" type="button" data-k="' + esc(L.id) + '" aria-pressed="false" title="Play the listed videos one after another">' + SVG_YT + ' Play all</button>' +
+      '<button class="allbtn" type="button" data-k="' + esc(L.id) + '" aria-pressed="true" title="Play the listed videos one after another">' + SVG_YT + ' Play all</button>' +
       (L.videos.length > 20 ? '<input class="filter" type="search" placeholder="Filter ' + L.videos.length + ' videos…" aria-label="Filter videos">' : '') + '</div>' +
       '<div class="cards list"></div></div></div></section>';
   }
@@ -426,12 +427,15 @@ function montaListas(){
   $('#nav').insertAdjacentHTML('beforeend', nav);
   $('#listas').innerHTML = sec;
 }
+/* al abrir una lista, empieza a sonar sola: la primera vez, el primer vídeo que lo tenga; al volver, el que sonaba */
 function abreLista(id){
   const L = LMAP && LMAP[id];
-  if (!L || L.pintada) return;
-  L.pintada = true;
-  document.querySelector('#s-' + id + ' .list').innerHTML = L.videos.map((v, i) => card(L, v, i)).join('');
-  if (L.videos.length) play(id, 0, false);
+  if (!L) return;
+  if (!L.pintada) {
+    L.pintada = true;
+    document.querySelector('#s-' + id + ' .list').innerHTML = L.videos.map((v, i) => card(L, v, i)).join('');
+  }
+  if (L.videos.length) play(id, L.actual ?? Math.max(0, L.videos.findIndex(v => v.vid)), true);
 }
 /* YouTube rechaza los embeds desde file:// (error 153: falta el referrer) */
 const LOCAL = location.protocol === 'file:';
