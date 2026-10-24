@@ -281,11 +281,6 @@ function toggleMenu(){
 $('#menuBtn').onclick = toggleMenu;
 $('#closeBtn').onclick = toggleMenu;
 $('#scrim').onclick = () => document.body.classList.remove('open');
-/* al elegir una sección del menú, se cierra el panel lateral */
-$('#nav').addEventListener('click', e => {
-  const a = e.target.closest('a');
-  if (a && !a.target && !mq.matches) document.body.classList.add('collapsed');
-});
 
 /* ---- navegación ---- */
 function show(id){
@@ -293,7 +288,6 @@ function show(id){
   document.querySelectorAll('section').forEach(s => s.hidden = s.id !== 's-' + id);
   document.querySelectorAll('.nav a').forEach(a => a.classList.toggle('on', a.dataset.s === id));
   $('#crumb').textContent = document.getElementById('s-' + id).dataset.title;
-  document.body.classList.remove('open');
   window.scrollTo(0, 0);
   stopHidden();
   abreLista(id);
